@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prompt → SVG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Halftone background layer -->
+<div class="bg-dots" aria-hidden="true"></div>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <div class="logo-star" aria-hidden="true">✦</div>
+    <div class="logo-text">
+      <h1>PROMPT<span class="arrow">→</span>SVG</h1>
+      <p class="tagline">Génération d'icônes par IA locale</p>
+    </div>
+  </div>
+
+  <div class="mode-tabs">
+    <button type="button" class="mode-tab active" data-mode="simple">⚡ Simple</button>
+    <button type="button" class="mode-tab" data-mode="compare">⚔ Comparer</button>
+  </div>
+</header>
+
+<!-- Jagged divider -->
+<div class="header-slash" aria-hidden="true"></div>
+
+<main>
+
+  <!-- ===== PANEL 1 : INPUT ===== -->
+  <section class="panel input-panel">
+    <div class="panel-num">01</div>
+    <div class="speech-label">DÉCRIVEZ VOTRE ICÔNE</div>
+
+    <textarea
+      id="prompt"
+      rows="3"
+      placeholder="Ex : une maison avec un toit rouge… une étoile de shérif… un robot kawaii…"
+    ></textarea>
+
+    <!-- Simple mode controls -->
+    <div class="controls" id="simpleControls">
+      <div class="field-group field-group--full">
+        <span class="field-label">MODÈLE IA</span>
+        <div class="model-btn-group" id="modelBtns">
+          <span class="model-loading">Chargement…</span>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-primary" id="generateBtn">
+          <span class="btn-icon">⚡</span> GÉNÉRER !
+        </button>
+        <button type="button" class="btn btn-secondary" id="variantToggleBtn" disabled>
+          ✦ VARIANTE
+        </button>
+      </div>
+    </div>
+
+    <!-- Compare mode controls -->
+    <div class="controls hidden" id="compareControls">
+      <div class="field-group">
+        <label class="field-label">MODÈLES À COMPARER</label>
+        <div class="checkbox-grid" id="modelCheckboxes"></div>
+      </div>
+      <button type="button" class="btn btn-primary" id="compareBtn">
+        <span class="btn-icon">⚔</span> LANCER LE DUEL !
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== VARIANT PANEL ===== -->
+  <section class="panel variant-panel hidden" id="variantPanel">
+    <div class="panel-num">✦</div>
+    <div class="speech-label">MODIFIER LE SVG</div>
+    <div class="variant-row">
+      <input
+        type="text"
+        id="variantPrompt"
+        placeholder="Ex : couleur bleue, traits plus épais, style pixel art…"
+      />
+      <button type="button" class="btn btn-secondary" id="applyVariantBtn">APPLIQUER !</button>
+    </div>
+    <p class="hint">↑ La variante part du SVG actuellement affiché</p>
+  </section>
+
+  <!-- ===== SIMPLE MODE RESULT ===== -->
+  <section id="simpleResult" class="hidden">
+
+    <div class="loading-bar hidden" id="loadingBar">
+      <div class="spinner"></div>
+      <span id="loadingLabel">L'IA dessine…</span>
+      <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+      <button type="button" class="btn btn-sm btn-cancel" id="cancelBtn" onclick="cancelGenerate()">✕ ANNULER</button>
+    </div>
+
+    <!-- Live generation progress -->
+    <div class="gen-progress hidden" id="genProgress">
+      <div class="gen-progress-header">
+        <span class="gen-model-tag" id="genModelTag"></span>
+        <span class="gen-token-count" id="genTokens">0 tokens</span>
+        <span class="gen-elapsed" id="genElapsed">0.0s</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-shimmer" id="progressShimmer"></div>
+      </div>
+      <pre class="gen-log" id="genLog"></pre>
+    </div>
+
+    <div class="result-grid" id="resultGrid">
+      <!-- Preview panel -->
+      <div class="panel preview-panel">
+        <div class="panel-num">02</div>
+        <div class="panel-header">
+          <span class="speech-label">APERÇU</span>
+          <span class="badge" id="timingBadge"></span>
+        </div>
+        <div class="svg-preview" id="svgPreview">
+          <span class="placeholder-text">LE SVG S'AFFICHERA ICI</span>
+        </div>
+        <div class="preview-footer">
+          <span class="model-tag" id="currentModelTag"></span>
+          <div class="action-row">
+            <button type="button" class="btn btn-sm btn-outline" onclick="copySVG()">📋 COPIER</button>
+            <button type="button" class="btn btn-sm btn-outline" onclick="downloadSVG()">💾 .SVG</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Code panel -->
+      <div class="panel code-panel">
+        <div class="panel-num">03</div>
+        <div class="panel-header">
+          <span class="speech-label">CODE SVG</span>
+          <button type="button" class="btn btn-sm btn-outline" onclick="copySVG()">📋 COPIER</button>
+        </div>
+        <pre class="code-block" id="codeDisplay"><span class="code-placeholder">// Le code SVG s'affiche ici…</span></pre>
+      </div>
+    </div>
+
+    <div class="panel error-panel hidden" id="errorCard">
+      <div class="panel-num">!</div>
+      <strong class="error-title">⚠ ERREUR !</strong>
+      <p id="errorMsg"></p>
+      <details>
+        <summary>Réponse brute du modèle</summary>
+        <pre id="rawResponse"></pre>
+      </details>
+    </div>
+
+  </section>
+
+  <!-- ===== COMPARE MODE RESULT ===== -->
+  <section id="compareResult" class="hidden">
+    <div class="loading-bar hidden" id="compareLoadingBar">
+      <div class="spinner"></div>
+      <span class="compare-status-text">DUEL EN COURS…</span>
+      <span class="loading-dots"><span>.</span><span>.</span><span>.</span></span>
+      <button type="button" class="btn btn-sm btn-cancel" id="cancelCompareBtn" onclick="cancelCompare()">✕ ANNULER</button>
+    </div>
+    <div class="compare-intro hidden" id="compareGrid" data-label="RÉSULTATS DU DUEL">
+      <!-- cards injected by JS -->
+    </div>
+  </section>
+
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
